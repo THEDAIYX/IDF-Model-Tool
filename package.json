@@ -1,0 +1,8 @@
+{
+  "name": "idf-model-workspace",
+  "version": "1.0.0",
+  "private": true,
+  "description": "基于 IDF 坐标和 SKEY 的轻量化三维模型管理平台",
+  "type": "module",
+  "scripts": { "start": "node server.mjs" }
+}

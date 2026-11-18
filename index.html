@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#07111e" />
+    <title>IDF 三维模型管理平台</title>
+    <script>window.CESIUM_BASE_URL = '/cesium/';</script>
+    <link rel="stylesheet" href="/cesium/Widgets/widgets.css" />
+    <link rel="stylesheet" href="/app.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section id="viewport" aria-label="IDF 三维模型视图"></section>
+      <div class="vignette" aria-hidden="true"></div>
+
+      <header class="topbar">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></div>
+          <div>
+            <p class="eyebrow">IDF MODEL WORKSPACE</p>
+            <h1>轻量化 IDF 三维模型管理平台</h1>
+          </div>
+        </div>
+        <div class="topbar-actions">
+          <span class="status-dot"></span><span id="statusText">等待导入 IDF 文件</span>
+          <button class="ghost-button" id="helpButton" type="button">解析规则</button>
+        </div>
+      </header>
+
+      <aside class="left-panel panel">
+        <div class="panel-heading split">
+          <div><p class="eyebrow">MODEL INPUT</p><h2>模型输入</h2></div>
+          <span class="counter" id="fileCount">0 文件</span>
+        </div>
+        <label class="dropzone" id="dropzone" for="fileInput">
+          <input id="fileInput" type="file" multiple accept=".idf,.IDF,.txt,text/plain" />
+          <span class="drop-icon">＋</span>
+          <strong>拖入一个或多个 IDF 文件</strong>
+          <small>或点击选择文件 · 仅在浏览器本地解析</small>
+        </label>
+        <div class="button-row">
+          <button class="primary-button" id="sampleButton" type="button">载入示例</button>
+          <button class="secondary-button" id="clearButton" type="button">清空</button>
+        </div>
+        <div class="input-note"><span>ⓘ</span><span>按 IDF 结构字段读取坐标：起点 E/N/Z、终点 E/N/Z，坐标精度 1/100 mm。</span></div>
+
+        <div class="section-title"><span>已载入文件</span><span id="elementCount">0 元件</span></div>
+        <div id="fileList" class="file-list"><p class="empty-state">导入后，文件和元件统计会显示在这里。</p></div>
+
+        <div class="section-title tree-title"><span>元件类型</span><span class="muted">SKEY / IDF</span></div>
+        <div id="typeList" class="type-list"><p class="empty-state">暂无分类</p></div>
+      </aside>
+
+      <aside class="right-panel panel">
+        <div class="panel-heading"><p class="eyebrow">INSPECTOR</p><h2>构件属性</h2></div>
+        <div id="selectionEmpty" class="selection-empty"><span class="selection-cross">⌁</span><strong>未选择构件</strong><p>点击模型中的管段或左侧列表查看字段、坐标与 SKEY。</p></div>
+        <div id="selectionContent" hidden>
+          <div class="selection-header"><span id="selectionType" class="type-pill">PIPE</span><strong id="selectionName">—</strong></div>
+          <p id="selectionFile" class="selection-file">—</p>
+          <dl id="propertyList" class="property-list"></dl>
+        </div>
+        <div class="inspector-footer"><span class="legend-line"></span><span>蓝色：管线</span><span class="legend-point"></span><span>橙色：元件</span></div>
+      </aside>
+
+      <aside class="tools-panel panel">
+        <div class="panel-heading compact"><p class="eyebrow">VIEW TOOLS</p><h2>视图工具</h2></div>
+        <div class="tool-grid">
+          <button class="tool-button active" data-action="fit" type="button"><span>⌖</span>适应模型</button>
+          <button class="tool-button" data-action="top" type="button"><span>↑</span>顶视图</button>
+          <button class="tool-button" data-action="labels" type="button"><span>◌</span>端点标记</button>
+          <button class="tool-button" data-action="pipes" type="button"><span>━</span>仅看管线</button>
+          <button class="tool-button" data-action="background" type="button"><span>◐</span>切换背景</button>
+          <button class="tool-button" data-action="reset" type="button"><span>↺</span>重置视角</button>
+          <button class="tool-button" data-action="clear-selection" type="button"><span>×</span>取消选中</button>
+        </div>
+        <p class="tip">左键旋转 · 右键平移 · 滚轮缩放 · 点击构件查看属性</p>
+      </aside>
+
+      <footer class="bottom-bar">
+        <span class="legend-dot"></span><span id="sceneSummary">本地浏览器解析 · 尚未载入模型</span>
+        <span class="separator"></span><span id="coordinateSummary">坐标系：IDF 本地坐标</span>
+        <span class="separator"></span><span id="clock"></span>
+      </footer>
+
+      <div id="loading" class="loading-screen" hidden><div class="loader-orbit"></div><strong id="loadingTitle">正在解析 IDF</strong><small id="loadingHint">读取坐标与元件记录…</small></div>
+      <div id="toast" class="toast" hidden></div>
+      <div id="hoverCard" class="hover-card" hidden><div id="hoverTitle" class="hover-title">—</div><div id="hoverBody" class="hover-body"></div></div>
+      <dialog id="helpDialog" class="help-dialog">
+        <form method="dialog">
+          <div class="dialog-header"><div><p class="eyebrow">RULES USED</p><h2>IDF 解读规则</h2></div><button class="close-button" aria-label="关闭">×</button></div>
+          <div class="rule-grid">
+            <div><span>01</span><strong>元件类型</strong><p>字段 1：30/35/45/100/105/130 等 IDF 记录号，映射到弯头、三通、管子、法兰、阀门等构件。</p></div>
+            <div><span>02</span><strong>坐标</strong><p>字段 2–7：起点和终点 East / North / Elevation，按 1/100 mm 还原后用于三维定位。</p></div>
+            <div><span>03</span><strong>尺寸与 SKEY</strong><p>字段 8：管径；行内 SKEY（如 ELBW、FLWN、VTFL）作为符号键展示并保留。</p></div>
+            <div><span>04</span><strong>多文件</strong><p>每个文件单独着色并汇总到文件列表，重叠坐标可直接叠加查看。</p></div>
+          </div>
+          <p class="dialog-note">规则来源：isogen_info_2005 中文翻译表、SKEY 说明（Symbol Keys）PDF。解析器在浏览器本地运行，不上传文件。</p>
+          <button class="primary-button dialog-confirm" value="close">知道了</button>
+        </form>
+      </dialog>
+    </main>
+    <script src="/cesium/Cesium.js"></script>
+    <script src="/app.js"></script>
+  </body>
+</html>
